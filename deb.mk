@@ -1,6 +1,6 @@
 HEROKUISH_DESCRIPTION = 'Herokuish uses Docker and Buildpacks to build applications like Heroku'
 HEROKUISH_REPO_NAME ?= gliderlabs/herokuish
-HEROKUISH_VERSION ?= 0.3.18
+HEROKUISH_VERSION ?= 0.3.33
 HEROKUISH_ARCHITECTURE = amd64
 HEROKUISH_PACKAGE_NAME = herokuish_$(HEROKUISH_VERSION)_$(HEROKUISH_ARCHITECTURE).deb
 
@@ -15,7 +15,7 @@ You can use any language you want, so long as the script is
 executable and has the proper language requirements installed
 endef
 PLUGN_REPO_NAME ?= dokku/plugn
-PLUGN_VERSION ?= 0.2.1
+PLUGN_VERSION ?= 0.3.0
 PLUGN_ARCHITECTURE = amd64
 PLUGN_PACKAGE_NAME = plugn_$(PLUGN_VERSION)_$(PLUGN_ARCHITECTURE).deb
 PLUGN_URL = https://github.com/dokku/plugn/releases/download/v$(PLUGN_VERSION)/plugn_$(PLUGN_VERSION)_linux_x86_64.tgz
@@ -26,7 +26,7 @@ Simplifies running a single command over SSH, and
 manages authorized keys (ACL) and users in order to do so.
 endef
 SSHCOMMAND_REPO_NAME ?= dokku/sshcommand
-SSHCOMMAND_VERSION ?= 0.5.0
+SSHCOMMAND_VERSION ?= 0.7.0
 SSHCOMMAND_ARCHITECTURE = amd64
 SSHCOMMAND_PACKAGE_NAME = sshcommand_$(SSHCOMMAND_VERSION)_$(SSHCOMMAND_ARCHITECTURE).deb
 SSHCOMMAND_URL ?= https://raw.githubusercontent.com/dokku/sshcommand/v$(SSHCOMMAND_VERSION)/sshcommand
@@ -86,13 +86,11 @@ deb-herokuish:
 	@echo "-> Creating deb files"
 	@echo "#!/usr/bin/env bash" >> /tmp/tmp/post-install
 	@echo "sleep 5" >> /tmp/tmp/post-install
-	@echo "count=\`sudo docker images | grep gliderlabs/herokuish | wc -l\`" >> /tmp/tmp/post-install
-	@echo 'if [ "$$count" -ne 0 ]; then' >> /tmp/tmp/post-install
-	@echo "  echo 'Removing old herokuish image'" >> /tmp/tmp/post-install
-	@echo "  sudo docker rmi gliderlabs/herokuish" >> /tmp/tmp/post-install
-	@echo "fi" >> /tmp/tmp/post-install
 	@echo "echo 'Importing herokuish into docker (around 5 minutes)'" >> /tmp/tmp/post-install
-	@echo "sudo docker build -t gliderlabs/herokuish /var/lib/herokuish 1> /dev/null" >> /tmp/tmp/post-install
+	@echo 'if [[ ! -z $${http_proxy+x} ]]; then BUILDARGS="--build-arg http_proxy=$$http_proxy"; fi' >> /tmp/tmp/post-install
+	@echo 'if [[ ! -z $${https_proxy+x} ]]; then BUILDARGS="$$BUILDARGS --build-arg https_proxy=$$https_proxy"; fi' >> /tmp/tmp/post-install
+	@echo 'if [[ ! -z $${BUILDARGS+x} ]]; then echo Adding proxy settings to docker build: $$BUILDARGS; fi' >> /tmp/tmp/post-install
+	@echo 'sudo docker build --pull $$BUILDARGS -t gliderlabs/herokuish /var/lib/herokuish' >> /tmp/tmp/post-install
 
 	@echo "-> Cloning repository"
 	git clone -q "https://github.com/$(HEROKUISH_REPO_NAME).git" --branch "v$(HEROKUISH_VERSION)" /tmp/tmp/herokuish > /dev/null
@@ -103,7 +101,7 @@ deb-herokuish:
 	cp -rf /tmp/tmp/herokuish /tmp/build/var/lib/herokuish
 
 	@echo "-> Creating $(HEROKUISH_PACKAGE_NAME)"
-	sudo fpm -t deb -s dir -C /tmp/build -n herokuish -v $(HEROKUISH_VERSION) -a $(HEROKUISH_ARCHITECTURE) -p $(HEROKUISH_PACKAGE_NAME) --deb-pre-depends 'docker-engine-cs (>= 1.9.1) | docker-engine (>= 1.9.1)' --deb-pre-depends sudo --after-install /tmp/tmp/post-install --url "https://github.com/$(HEROKUISH_REPO_NAME)" --description $(HEROKUISH_DESCRIPTION) --license 'MIT License' .
+	sudo fpm -t deb -s dir -C /tmp/build -n herokuish -v $(HEROKUISH_VERSION) -a $(HEROKUISH_ARCHITECTURE) -p $(HEROKUISH_PACKAGE_NAME) --deb-pre-depends 'docker-engine-cs (>= 1.9.1) | docker-engine (>= 1.9.1) | docker-ce | docker-ee' --deb-pre-depends sudo --after-install /tmp/tmp/post-install --url "https://github.com/$(HEROKUISH_REPO_NAME)" --description $(HEROKUISH_DESCRIPTION) --license 'MIT License' .
 	mv *.deb /tmp
 
 deb-dokku:
@@ -121,24 +119,36 @@ deb-dokku:
 	cp dokku /tmp/build/usr/bin
 	cp LICENSE /tmp/build/usr/share/doc/dokku/copyright
 	find . -name ".DS_Store" -depth -exec rm {} \;
+	$(MAKE) go-build
+	cp common.mk /tmp/build/var/lib/dokku/core-plugins/common.mk
 	cp -r plugins/* /tmp/build/var/lib/dokku/core-plugins/available
+	find plugins/ -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | while read plugin; do cd /tmp/build/var/lib/dokku/core-plugins/available/$$plugin && if [ -e Makefile ]; then $(MAKE) src-clean; fi; done
 	find plugins/ -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | while read plugin; do touch /tmp/build/var/lib/dokku/core-plugins/available/$$plugin/.core; done
+	rm /tmp/build/var/lib/dokku/core-plugins/common.mk
 	$(MAKE) help2man
 	$(MAKE) addman
 	cp /usr/local/share/man/man1/dokku.1 /tmp/build/usr/share/man/man1/dokku.1
 	gzip -9 /tmp/build/usr/share/man/man1/dokku.1
 	cp contrib/dokku-installer.py /tmp/build/usr/share/dokku/contrib
+ifeq ($(DOKKU_VERSION),master)
 	git describe --tags > /tmp/build/var/lib/dokku/VERSION
+else
+	echo $(DOKKU_VERSION) > /tmp/build/var/lib/dokku/VERSION
+endif
 	cat /tmp/build/var/lib/dokku/VERSION | cut -d '-' -f 1 | cut -d 'v' -f 2 > /tmp/build/var/lib/dokku/STABLE_VERSION
 ifneq (,$(findstring false,$(IS_RELEASE)))
 	sed -i.bak -e "s/^/`date +%s`:/" /tmp/build/var/lib/dokku/STABLE_VERSION && rm /tmp/build/var/lib/dokku/STABLE_VERSION.bak
 endif
-	rm /tmp/build/DEBIAN/lintian-overrides
-	mv debian/lintian-overrides /tmp/build/usr/share/lintian/overrides/dokku
+	rm -f /tmp/build/DEBIAN/lintian-overrides
+	cp debian/lintian-overrides /tmp/build/usr/share/lintian/overrides/dokku
+ifdef DOKKU_GIT_REV
+	echo "$(DOKKU_GIT_REV)" > /tmp/build/var/lib/dokku/GIT_REV
+else
 	git rev-parse HEAD > /tmp/build/var/lib/dokku/GIT_REV
-	sed -i "s/^Version: .*/Version: `cat /tmp/build/var/lib/dokku/STABLE_VERSION`/g" /tmp/build/DEBIAN/control
-	dpkg-deb --build /tmp/build "/tmp/dokku_`cat /tmp/build/var/lib/dokku/STABLE_VERSION`_$(DOKKU_ARCHITECTURE).deb"
-	lintian "/tmp/dokku_`cat /tmp/build/var/lib/dokku/STABLE_VERSION`_$(DOKKU_ARCHITECTURE).deb"
+endif
+	sed -i.bak "s/^Version: .*/Version: `cat /tmp/build/var/lib/dokku/STABLE_VERSION`/g" /tmp/build/DEBIAN/control && rm /tmp/build/DEBIAN/control.bak
+	dpkg-deb --build /tmp/build "/tmp/dokku_`cat /tmp/build/var/lib/dokku/VERSION`_$(DOKKU_ARCHITECTURE).deb"
+	lintian "/tmp/dokku_`cat /tmp/build/var/lib/dokku/VERSION`_$(DOKKU_ARCHITECTURE).deb"
 
 deb-plugn:
 	rm -rf /tmp/tmp /tmp/build $(PLUGN_PACKAGE_NAME)

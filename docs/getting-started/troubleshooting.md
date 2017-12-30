@@ -43,7 +43,7 @@ __Solution:__
 
 The `remote rejected` error does not give enough information. Anything could have failed.
 
-To enable dokku tracing, simply run the following command:
+To enable Dokku tracing, simply run the following command:
 
 ```shell
 # since 0.3.9
@@ -60,7 +60,7 @@ This will trace all of dokku's activity. If this does not help you, create a [gi
 
 ***
 
-__Symptom:__ I get the aforementioned error in the build phase (after turning on dokku tracing)
+__Symptom:__ I get the aforementioned error in the build phase (after turning on Dokku tracing)
 
   Most errors that happen in this phase are due to transient network issues (either locally or remotely) buildpack bugs.
 
@@ -150,7 +150,57 @@ it might that the curl command that is supposed to fetch the buildpack (anything
 
 ```shell
 dokku config:set --global CURL_TIMEOUT=600
-dokku config:set --global CURL_CONNECT_TIMEOUT=30
+dokku config:set --global CURL_CONNECT_TIMEOUT=180
 ```
 
 Please see https://github.com/dokku/dokku/issues/509
+
+Another reason for this error (although it may respond immediately ruling out a timeout issue) may be because you've set the config setting `SSL_CERT_FILE`. Using a config setting with this key interferes with the buildpack's ability to download it's dependencies, so you must rename the config setting to something else, e.g. `MY_APP_SSL_CERT_FILE`.
+
+***
+
+__Symptom:__ Build fails with `Killed` message.
+
+__Solution:__
+
+This generally occurs when the server runs out of memory. You can either add more ram to your server or setup swap space. The follow script will create 2gb of swap space.
+
+```shell
+sudo install -o root -g root -m 0600 /dev/null /swapfile
+dd if=/dev/zero of=/swapfile bs=1k count=2048k
+mkswap /swapfile
+swapon /swapfile
+echo "/swapfile       swap    swap    auto      0       0" | sudo tee -a /etc/fstab
+sudo sysctl -w vm.swappiness=10
+echo vm.swappiness = 10 | sudo tee -a /etc/sysctl.conf
+```
+
+***
+
+__Symptom:__ I successfully deployed my application with no deployment errors but I'm receiving Connection Timeout when attempting to access the application.
+
+__Solution:__
+
+This can occur if Dokku is running on a system with a firewall like ufw enabled (some OS versions like Ubuntu 16.04 have this enabled by default). You can check if this is your case by running the following script:
+
+```shell
+sudo ufw status
+```
+
+If the previous script returned `Status: active` and a list of ports, ufw is enabled and is probably the cause of the symptom described above. To disable it, run:
+
+```shell
+sudo ufw disable
+```
+
+***
+
+__Symptom:__ I can't connect to my application because the server is sending an invalid response, or can't provide a secure connection.
+
+__Solution:__
+
+This isn't usually an issue with Dokku, but rather an app config problem. This can happen when your application is configured to enforce secure connections/HSTS, but you don't have SSL set up for the app.
+
+In Rails at least, if your `application.rb` or `environmnents/production.rb` include the line `configure.force_ssl = true`, which includes HSTS try commenting that out and redeploying.
+
+If this solves the issue temporarily, longer term you should consider [configuring SSL](http://dokku.viewdocs.io/dokku/configuration/ssl/).

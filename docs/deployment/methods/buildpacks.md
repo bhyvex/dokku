@@ -4,22 +4,21 @@ Dokku normally defaults to using [heroku buildpacks](https://devcenter.heroku.co
 
 - Use `dokku config:set` to set the `BUILDPACK_URL` environment variable.
 - Add `BUILDPACK_URL` to a committed `.env` file in the root of your repository.
-  - See the [environment variable documentation](/dokku/configuration/environment-variables/) for more details.
+  - See the [environment variable documentation](/docs/configuration/environment-variables.md) for more details.
 - Create a `.buildpacks` file in the root of your repository.
 
 ## Specifying a custom buildpack
 
-In certain cases you may want to specify a custom buildpack. While dokku uses herokuish to support all the [official heroku buildpacks](https://github.com/gliderlabs/herokuish#buildpacks), it is possible that the buildpack detection does not work well for your application. As well, you may wish to use a custom buildpack to handle specific application logic.
+In certain cases you may want to specify a custom buildpack. While Dokku uses herokuish to support all the [official heroku buildpacks](https://github.com/gliderlabs/herokuish#buildpacks), it is possible that the buildpack detection does not work well for your application. As well, you may wish to use a custom buildpack to handle specific application logic.
 
-To use a specific buildpack, you can run the following dokku command:
+To use a specific buildpack, you can run the following Dokku command:
 
 ```shell
-# replace APP with the name of your application
 # replace REPOSITORY_URL with your buildpack's url
-dokku config:set APP BUILDPACK_URL=REPOSITORY_URL
+dokku config:set node-js-app BUILDPACK_URL=REPOSITORY_URL
 
 # example: using a specific ruby buildpack version
-dokku config:set APP BUILDPACK_URL=https://github.com/heroku/heroku-buildpack-ruby.git#v142
+dokku config:set node-js-app BUILDPACK_URL=https://github.com/heroku/heroku-buildpack-ruby.git#v142
 ```
 
 Please check the documentation for your particular buildpack as you may need to include configuration files (such as a Procfile) in your project root.
@@ -45,21 +44,19 @@ As Dokku pins all buildpacks via herokuish releases, there may be occasions wher
 
 ```shell
 # using the latest nodejs buildpack
-# replace APP with the name of your application
-dokku config:set APP BUILDPACK_URL=https://github.com/heroku/heroku-buildpack-nodejs
+dokku config:set node-js-app BUILDPACK_URL=https://github.com/heroku/heroku-buildpack-nodejs
 ```
 
 You may also wish to use a **specific** version of a buildpack, which is also simple
 
 ```shell
 # using v87 of the nodejs buildpack
-# replace APP with the name of your application
-dokku config:set APP BUILDPACK_URL=https://github.com/heroku/heroku-buildpack-nodejs#v87
+dokku config:set node-js-app BUILDPACK_URL=https://github.com/heroku/heroku-buildpack-nodejs#v87
 ```
 
 ## Specifying commands via Procfile
 
-While many buildpacks have a default command that is run when a detected repository is pushed, it is possible to override this command via a Procfile. A Procfile can also be used to specify multiple commands, each of which is subject to process scaling. See the [process scaling documentation](/dokku/deployment/process-management/) for more details around scaling individual processes.
+While many buildpacks have a default command that is run when a detected repository is pushed, it is possible to override this command via a Procfile. A Procfile can also be used to specify multiple commands, each of which is subject to process scaling. See the [process scaling documentation](/docs/deployment/process-management.md) for more details around scaling individual processes.
 
 A Procfile is a file named `Procfile`. It should be named `Procfile` exactly, and not anything else. For example, `Procfile.txt` is not valid. The file should be a simple text file.
 
@@ -80,7 +77,7 @@ worker:           env QUEUE=* bundle exec rake resque:work
 importantworker:  env QUEUE=important bundle exec rake resque:work
 ```
 
-The `web` process type holds some significance in that it is the only process type that is automatically scaled to `1` on the initial application deploy. See the [process scaling documentation](/dokku/deployment/process-management/) for more details around scaling individual processes.
+The `web` process type holds some significance in that it is the only process type that is automatically scaled to `1` on the initial application deploy. See the [process scaling documentation](/docs/deployment/process-management.md) for more details around scaling individual processes.
 
 ## Curl Build Timeouts
 
@@ -90,9 +87,9 @@ If you see output similar this when deploying , you may need to override the cur
 
 ```shell
 dokku config:set --global CURL_TIMEOUT=600
-dokku config:set --global CURL_CONNECT_TIMEOUT=30
+dokku config:set --global CURL_CONNECT_TIMEOUT=180
 ```
 
 ## Clearing buildpack cache
 
-See the [repository management documentation](/dokku/advanced-usage/repository-management/#clearing-app-cache).
+See the [repository management documentation](/docs/advanced-usage/repository-management.md#clearing-app-cache).

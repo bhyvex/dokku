@@ -1,5 +1,458 @@
 # History
 
+## 0.11.2
+
+### Bug Fixes
+
+- #3014: @josegonzalez fix: handle case where DOKKU_DOCKERFILE_PORTS is an empty string
+- #3013: @alexquick Fix some issues with config/network/repo help output
+- #3012: @alexquick Fail when setting/unsetting invalid keys
+- #3011: @alexquick Forward output from plugn triggers to user
+- #3004: @josegonzalez Return/Exit 1 when an image being deployed is invalid
+
+### Documentation
+
+- #3015: @elia Tiny fixes to triggers documentation
+
+## 0.11.1
+
+### Bug Fixes
+
+- #3010: @josegonzalez fix: route config_all to the `config` command to fix datastore plugin usage
+- #3009: @josegonzalez fix: correct the guard around the config_export call in config_sub
+- #3006: @josegonzalez fix: do not allow shadowing of the CACHE_DIR variable
+- #3005: @josegonzalez fix: persist users in the dokku group through installations
+- #3003: @josegonzalez Fix issues in apps:clone calls
+- #3001: @josegonzalez fix: allow applications to begin with numeric values
+
+### New Features
+
+- #3002: @josegonzalez fix: omit redirection of docker build output
+- #3000: @josegonzalez fix: remove golang files and triggers directory for packaging
+
+## 0.11.0
+
+### Bug Fixes
+
+- #2998: @josegonzalez Fix issues in release process
+- #2993: @josegonzalez Add config_all alias for plugin usage
+- #2972: @buckle2000 Correct typo in docker-options:remove error output
+- #2964: @znz Remove unused variable
+- #2967: @znz Fix indentation in test file
+- #2963: @znz Correct typos in config plugin and remove potential infinite recursion issue
+- #2951: @josegonzalez Handle case where the app directory is a symlink
+- #2939: @znz Remove unnecessary lines
+- #2945: @znz Fix network plugin version
+- #2937: @michaelshobbs Strip restart flag from app_user_pre_deploy_trigger
+- #2931: @josegonzalez Upgrade git package for CI
+- #2928: @silverfix Do not overwrite the VHOST file during installation if it exists
+- #2926: @vtavernier Remove leading forward slash from app name in git-upload-pack
+
+### New Features
+
+- #2985: @bitmand Build a custom dhparam file once for nginx and include it as default
+- #2974: @josegonzalez Upgrade to herokuish 0.3.33
+- #2973: @josegonzalez Allow usage of git 2.13.0+ by unsetting GIT_QUARANTINE_PATH during git worktree usage
+- #2971: @miraculixx Add support for older virtualbox versions in official Dokku Vagrantfile
+- #2966: @znz Simplify internal config functions to reduce duplication
+- #2751: @alexquick Move config plugin to golang
+- #2938: @michaelshobbs Upgrade to golang 1.9.1
+- #2736: @josegonzalez Implement Network Plugin
+- #2929: @michaelshobbs Add codacy config and coverage targets
+
+### Documentation
+
+- #2935: @jcrben Document how to make herokuish optional during the bootstrap installation
+- #2982: @agorf Correct typo in user management docs
+- #2981: @agorf Correct typos in process management docs
+- #2969: @znz Correct comments on network triggers
+- #2965: @znz Remove spaces from config subcommand help output to mirror help output of other subcommands
+- #2954: @mrname Add vernemq community datastore plugin to docs
+- #2944: @axilleas Fix syntax typo in debian installation docs
+- #2932: @znz Update code comment to match documentation
+- #2933: @znz Fix version number for network binding documentation
+
+## 0.10.5
+
+### Bug Fixes
+
+- #2912: @josegonzalez Add missing depends statement for rsyslog
+- #2906: @manuel-colmenero Check the location of nginx in a central way
+- #2895: @josegonzalez cd to app directory when calling git worktree add
+
+### Documentation
+
+- #2922: @axilleas Clarify the minimum Nginx version for HTTP/2 support
+- #2919: @wootwoot1234 Update nginx documentation surrounding file uploading for php buildpack users
+- #2913: @znz Fix a typo in the rpm release script
+- #2910: @buckle2000 Add a note about using the full git url for non-compliant toolchains
+
+## 0.10.4
+
+### Bug Fixes
+
+- #2894: @josegonzalez fix: bail if any step in the release process fails
+- #2880: @josegonzalez fix: properly detect empty subcommands
+- #2881: @josegonzalez Verify app name on git push
+- #2858: @cstroe Use correct port number for the upstream.
+- #2848: @josegonzalez Ensure https applications return an https url from `dokku url`
+- #2839: @josegonzalez fix: skip clearing cache if we are not building a herokuish image
+
+### New Features
+
+- #2890: @michaelshobbs use circleci 2.0
+- #2847: @scjody Add nginx ppa before installing Dokku
+- #2850: @michaelshobbs add optional PROC_TYPE and CONTAINER_INDEX to docker-args-deploy plugn trigger
+- #2840: @josegonzalez Add DYNO environment variable to run containers
+- #2824: @josegonzalez Upgrade herokuish to version 0.3.31
+
+### Documentation
+
+- #2861: @adelq Use non-deprecated apps command
+- #2878: @m0rth1um Add telegram notifications plugin
+- #2876: @josegonzalez docs: clarify storage documentation caveats
+- #2873: @josegonzalez docs: add a note on which docs to look at for customizing nginx docs
+- #2867: @josegonzalez docs: cleanup help output for dokku shell
+- #2859: @josegonzalez docs: use relative link for application deployment doc
+- #2866: @josegonzalez Add missing migration guides
+- #2863: @josegonzalez docs: fix syntax on getting started docs
+- #2836: @fishnux Add a note regarding nginx dependency to installation docs
+- #2834: @iansu Clarify port exposure in Dockerfile documentation
+
+## 0.10.3
+
+### Bug Fixes
+
+- #2832: @josegonzalez fix: use python2.7 binary instead of python2 binary
+
+## 0.10.2
+
+### New Features
+
+- #2827: @josegonzalez feat: allow installation of openresty instead of nginx
+
+## 0.10.1
+
+### Bug Fixes
+
+- #2826: @josegonzalez Fix HISTORY.md generator
+
+## 0.10.0
+
+### Bug Fixes
+
+- #2820: @josegonzalez Require netcat in debian packaging
+- #2774: @fruitl00p Include docker-options in the default `dokku`
+- #2778: @zarqman Fix /etc/logrotate.d/dokku on debian
+- #2747: @ebeigarts Update herokuish base image on updates using --pull
+- #2739: @josegonzalez Use listener_port in nginx.conf.sigil
+- #2735: @josegonzalez Ensure we can call ps:report without specifying an application
+- #2733: @josegonzalez Add support for new docker package names
+- #2730: @weyert Ignore the cache directory when cloning an app
+- #2723: @weyert Call non-deprecated plugin:list method
+
+### New Features
+
+- #2822: @josegonzalez refactor: allow skipping cleanup on a per-application basis
+- #2754: @fzerorubigd Add support for set DOKKU_IMAGE per app
+- #2815: @markstory Add stickler-ci configuration.
+- #2809: @oliw Remove aufs step from Makefile
+- #2785: @josegonzalez Add a release-plugin binary
+- #2777: @stokarenko Turn on ps-post-stop hook.
+- #2781: @fruitl00p Adds docker.io support
+- #2766: @josegonzalez Upgrade to herokuish 0.3.29
+- #2765: @josegonzalez Install python3-software-properties as an alternative to python-software-properties
+- #2642: @chiedo Added better default nginx error pages
+- #2678: @callahad Default to secure PCI-compliant SSL setup
+- #2734: @josegonzalez Allow quieter report output
+
+### Documentation
+
+- #2803: @iSDP Adding related articles on the Docker Image Deployment page
+- #2798: @znz Update CURL_CONNECT_TIMEOUT in docs
+- #2795: @josegonzalez docs: Add documentation around adding build-time configuration variables
+- #2791: @yazinsai Correct typo in persistent storage docs
+- #2789: @h4ckninja Subject-verb agreement
+- #2790: @flyinggrizzly Add entry for insecure connection issue in Rails
+- #2788: @josegonzalez Flesh out uninstallation documentation
+- #2784: @josegonzalez Document special dokku environment variables
+- #2773: @znz Update year in footer [ci skip]
+- #2768: @znz Ubuntu 12.04 is EOL
+- #2769: @lucianopf Fix SlackButton for mobile devices.
+- #2763: @ZiadSalah Update vagrant documentation for windows users
+- #2764: @joshmanders Create PULL_REQUEST_TEMPLATE.md
+- #2758: @AxelTheGerman Update doc location for dokku-git-rev community plugin
+- #2757: @nodanaonlyzuul Fix typo from "To use a dockerfiles" to "To use a dockerfile" singular
+- #2753: @abrkn Use short-hand method for shutting down all applications in upgrade docs
+- #2746: @josegonzalez Add redirect for installation to advanced install docs
+- #2738: @josegonzalez Add missing `NO_SSL_SERVER_NAME` to example template
+- #2457: @john-doherty Update Digitalocean installation instructions
+- #2725: @timaschew Fix typo in application management docs
+- #2719: @joshco Clarify that nginx.conf.sigil must be committed to repository
+- #2715: @josegonzalez Use urls that are linkable on github
+
+## 0.9.4
+
+### Documentation
+
+- #2710: @josegonzalez Quiet output for git-related commands
+
+## 0.9.3
+
+### Bug Fixes
+
+- #2706: @josegonzalez fix: ensure nginx conf.d directory exists when running nginx install hook
+- #2701: @scjody Set SSH_USER for root commands
+
+### New Features
+
+- #2708: @josegonzalez Document that we will not do buildpack support in the issue tracker
+
+### Documentation
+
+- #2709: @michaelshobbs increase CURL_TIMEOUT and CURL_CONNECT_TIMEOUT defaults
+- #2699: @mbreit Add support for git >= 2.11
+
+## 0.9.2
+
+### New Features
+
+- #2698: @josegonzalez docs: Document that we only care about specific sections
+- #2697: @callahad Restore installer note regarding AUFS on Linode
+- #2694: @scjody Add documentation note re: git-pre-pull vs. auth
+
+### Documentation
+
+- #2695: @michaelshobbs add tests for pre/post deploy tasks
+
+## 0.9.1
+
+### Bug Fixes
+
+- #2693: @josegonzalez fix: explicitly chown data and data/storage directories
+
+## 0.9.0
+
+### Bug Fixes
+
+- #2691: @josegonzalez Fix package building when golang binaries are available
+- #2671: @znz Fix variable name
+- #2672: @callahad Fix logrotate on Debian
+- #2666: @josegonzalez Use correct flag for build arguments when installing herokuish
+- #2664: @pvalentim Fix remote name when using --remote option with apps:create
+
+### New Features
+
+- #2689: @mbreit Add dokku-monit to community plugin list
+- #2683: @josegonzalez Ensure we have an example for adding keys as another user
+- #2682: @josegonzalez Clarify supported stanzas in app.json
+- #2679: @callahad Remove unnecessary Linode-specific instructions
+- #2670: @znz Remove duplicated `(i.e. `
+
+### Documentation
+
+- #2685: @josegonzalez Pass shellcheck on os x
+- #2677: @callahad Prefer HTTP2 to SPDY in nginx-vhosts
+- #2673: @michaelshobbs Update to herokuish 0.3.27
+- #2674: @michaelshobbs Update sshcommand to 0.7.0
+- #2654: @ebeigarts Enable nginx and docker on system startup when using bootstrap.sh on CentOS
+- #2546: @michaelshobbs Convert repo plugin to golang
+
+## 0.8.2
+
+### New Features
+
+- #2660: @josegonzalez allow installation of plugins via tarball
+- #2661: @josegonzalez Do not run builds in quiet mode
+
+## 0.8.1
+
+### Bug Fixes
+
+- #2519: @tkalus Further guard against duplicate ssl server names
+- #2554: @josegonzalez Add ssl ports when generating a self-signed certificate
+- #2555: @josegonzalez Skip failing applications when running ps:restore on boot
+- #2576: @znz Remove unused variable
+- #2592: @josegonzalez always set a default ssl port for apps with ssl enabled
+- #2612: @josegonzalez Ensure VHOST files exist before executing commands against them
+- #2647: @josegonzalez Properly escape post-install variables
+- #2650: @josegonzalez Fix help output for nginx and ssh-keys
+- #2656: @josegonzalez ensure we can call the report subcommand without an app while specifying flags
+- d79a79: @josegonzalez bail early when checking ps output for an undeployed app
+
+### New Features
+
+- #2500: @josegonzalez Suppress output unless the `git submodule update` call fails
+- #2504: @mbtamuli Implement apps:report and storage:report
+- #2508: @OmarShehata Add default functions for all commands
+- #2557: @josegonzalez Dokku cli improvements
+- #2573: @ebeigarts Recommend parallel package for faster ps:restore
+- #2578: @josegonzalez Require specific versions for dokku-maintained packages
+- #2583: @josegonzalez Implement apps:clone subcommand
+- #2586: @bevand10 Add http-proxy support for deb-herokuish installs
+- #2587: @josegonzalez Allow specifying the deploy branch via DOKKU_DEPLOY_BRANCH
+- #2594: @michaelshobbs Upgrade to herokuish v0.3.25
+- #2615: @josegonzalez Implement certs:report
+- #2616: @josegonzalez Replace apps:default subcommand with apps:list
+- #2617: @josegonzalez Implement checks:report
+- #2618: @josegonzalez Implement docker-options:report and storage:report
+- #2619: @josegonzalez Call ssh-keys:help from ssh-keys:default
+- #2620: @josegonzalez Implement domains:report and proxy:report
+- #2622: @raphaklaus Allow file names with multiple dots in certs:add command
+- #2634: @michaelshobbs Update herokuish to 0.3.26
+- #2657: @josegonzalez Add post-extract plugin trigger
+
+### Documentation
+
+- #2475: @pranavgoel25 Minor readme and sponsor changes
+- #2556: @josegonzalez Use slightly better font style for docs
+- #2560: @ebeigarts Improve install documentation on CentOS
+- #2564: @ka7 Fix spelling mistakes
+- #2565: @josegonzalez Update persistent storage to reference the sample app as normal
+- #2566: @josegonzalez Move "new as of" note in storage docs to correct section
+- #2569: @OmgImAlexis Reload nginx after adding default vhost file
+- #2570: @OmgImAlexis Update ISSUE_TEMPLATE.md to reference `dokku report` command
+- #2580: @znz Fix font URL
+- #2588: @josegonzalez Clarify when the `~/.ssh/config` settings need to match `vagrant ssh-config output`
+- #2605: @andyjeffries Documented build failures when using SSL_CERT_FILE environment variable
+- #2613: @emveeoh Update Linode installation instructions for new GRUB 2 Linode boot option
+- #2626: @znz Update apps:help example command
+- #2629: @znz Update certs:help output for certs:default subcommand
+- #2633: @drpoggi Reference the x-forwarded headers in correct order
+- #2637: @josegonzalez Add documentation surrounding flags that ps:report accepts
+- #2638: @fwolfst Improve README links
+- #2639: @joshco Add documentation for how to grant other Unix accounts Dokku access
+- #2648: @josegonzalez Note that the remote username is important
+- #2659: @jfw Minor clarifications to application deployment tutorial
+
+## 0.8.0
+
+The big kahuna. Lots of documentation changes, and a few bug fixes to make Dokku development a bit easier.
+
+CentOS 7 users will be happy to see that we now have experimental support for your operating system. Huge thanks to @ebeigarts for working on that feature :)
+
+Thanks to all the contributors who helped with this release!
+
+### Bug Fixes
+
+- #2407: @josegonzalez Move core post-deploy triggers to core-post-deploy
+- #2442: @znz Fix `is_tag_force_available` bug when docker major version up
+- #2452: @mbtamuli Solves SSH Key problem when admin user already exists
+- #2454: @onbjerg Return exit 1 in config:get if no ENV file exists
+- #2464: @sseemayer Remove duplicate SSL hostnames
+- #2465: @polettix Fix issue when importing ssh-keys
+- #2477: @ebeigarts Fix dokku-redeploy systemd script to start only after docker
+- #2485: @znz Fix bug when VHOST file is missing newline
+- #2492: @josegonzalez Fix iteration on all apps for `dokku proxy` command
+- #2495: @josegonzalez Create the user's `authorized_keys` file if it does not exist
+- #2496: @josegonzalez Detect nginx versions that support HTTP/2 well
+- #2518: @josegonzalez Use same check for dockerfile apps during a tar build
+- #2526: @michaelshobbs Actually fail deploy when app.json script fails
+- #2539: @ebeigarts Fix dokku-installer.service removal
+
+### New Features
+
+- #2378: @knjcode Skip container finish processing when zero downtime is disabled
+- #2406: @josegonzalez Use apps_create method when renaming an application
+- #2419: @ebeigarts Support for CentOS 7
+- #2489: @joshmanders Add plugin uninstall trigger
+- #2510: @IlyaSemenov Add domains:set and domains:set-global commands
+- #2544: @michaelshobbs Update herokuish to 0.3.24
+- #2552: @josegonzalez Allow package building on OSX
+- #2553: @josegonzalez Add release-related Dockerfiles
+
+### Documentation
+
+- #2432: @josegonzalez Clarify DOKKU_SCALE docs
+- #2433: @alexgleason Add robots.txt plugin to community docs
+- #2437: @vishnubhagwan Fix warning in installation docs
+- #2451: @mbtamuli Document the logs plugin
+- #2470: @fteychene Add build-hook to plugins doc
+- #2472: @mainto Add dokku-access to plugins doc
+- #2484: @nahtnam Document build issues when a `Killed` message is displayed
+- #2486: @OmarShehata Fixing typo & broken link in docs
+- #2488: @joshmanders Bump font size in documentation
+- #2493: @josegonzalez Clarify checks documentation
+- #2497: @joshmanders Make features heading more clear
+- #2503: @mlebkowski Update dokku-acl plugin link
+- #2505: @kjschulz Add Dokku Wordpress plugin to docs
+- #2506: @simonkotwicz Fix typos in deployment docs
+- #2507: @josegonzalez Update upgrade docs to point out sshcommand and plugn upgrading as well
+- #2509: @kjschulz Map dokku-community user in plugins
+- #2511: @IlyaSemenov Clarify instructions for arranging default nginx site
+- #2515: @sgloutnikov Update DreamHost Cloud install instructions
+- #2517: @josegonzalez Update docs regarding if the ssh-keys plugin should be in use
+- #2522: @joshmanders Ensure install documentation can be run via copy-paste
+- #2525: @OmarShehata Plugin-triggers typo: dokkku -> dokku
+- #2531: @slava-vishnyakov Document rebuilding app after mounting storage
+- #2533: @facundomedica Document potential firewall problem on Ubuntu 16.04
+
+## 0.7.2
+
+This minor release contains mostly documentation changes, and should be fully backwards compatible with previous 0.7.x releases.
+
+Thanks to all the contributors who helped with this release!
+
+### Bug Fixes
+
+- #2392: @swg Specify python2 for get_json functions
+- #2408: @jcscottiii Use $DOKKU_VHOST_ENABLE instead of $VHOST_ENABLE in bootstrap.sh
+- #2417: @PWAckerman Remove extra quotes from DYNO environment variable
+- #2426: @michaelshobbs add force option on docker tag when available
+
+### New Features
+
+- #2418: @michaelshobbs Update to plugn 0.2.2
+- #2423: @michaelshobbs Update to herokuish 0.3.19
+
+### Documentation
+
+- #2393: @josegonzalez Deprecate all process manager plugins
+- #2394: @josegonzalez Deprecate old graphite plugin and add official graphite plugin
+- #2395: @josegonzalez Deprecate sekjun9878/redis
+- #2396: @josegonzalez Deprecate multi-buildpack plugin
+- #2397: @josegonzalez Update compatibility of dokku feature plugin
+- #2398: @josegonzalez Update compatibility of "other plugins"
+- #2404: @bascht Fix docker build syntax in image tags documentation
+- #2405: @josegonzalez Fully document the ps plugin
+- #2409: @josegonzalez Document caveats around ps:rebuild and tags/tar deployed applications
+- #2416: @njaxx Adds a mention of manually adding nginx entry
+- #2420: @c990802 Update command example for consistency
+- #2410: @IlyaSemenov Clarify domains help, improve domains unit tests
+- #2429: @enisozgen Minor documentation fixes
+- #2431: @josegonzalez Add missing redirect for deployment/deployment-tasks
+
+## 0.7.1
+
+### Bug Fixes
+
+- #2348: @josegonzalez Correct the version in use for ssh-keys
+- #2369: @u2mejc Fix ssh-keys:add permission error
+- #2377: @ebeigarts Do not use http_proxy env variables for CHECKS
+- #2360: @xadh00m Allow hyphen in TLD
+- #2387: @michaelshobbs Silence find warnings under Ubuntu 16.04
+- #2390: @josegonzalez Actually stop the dokku-installer service
+
+### New Features
+
+- #2358: @josegonzalez Guard against poodle vulnerability by default
+- #2385: @michaelshobbs Actually merge dokku-app-user into core
+
+### Documentation
+
+- #2337: @josegonzalez Update deprecated plugins list
+- #2352: @miguelcobain Fix typos in plugin-triggers docs
+- #2353: @miguelcobain Add a note about making plugins executable
+- #2345: @johnfraney Update list of officially supported distributions
+- #2354: @josegonzalez Dockerfile deploys do not support mounted volumes
+- #2371: @michaelshobbs Moved some plugin repos to michaelshobbs
+- #2381: @michaelshobbs Fail rest of bats file on first test failure
+- #2382: @alexgleason Fix typo "exampple" to "example"
+- #2386: @josegonzalez Add a migration guide for 0.7.0
+- #2388: @josegonzalez Add documentation for proxy ports scheme handling
+- #2389: @josegonzalez Add plugin management documentation
+
+
 ## 0.7.0
 
 Another great minor release! There are no known backwards incompatibilities with this release, though the following may be of interest to our users:
@@ -896,7 +1349,7 @@ Thanks to the *many* contributors for making this release our best release so fa
 - #1473: @josegonzalez Handle crashing containers by using restart=on-failure policy
 - #1476: @michaelshobbs Support static nginx port when deploying without an application VHOST
 - #1476: nginx proxy without VHOST
-- #1477: @arthurschreiber Support removing config variables that contain `\n`.
+- #1477: @arthurschreiber Support removing config variables containing newlines.
 
 ### Documentation
 
@@ -1042,7 +1495,7 @@ This release pegs Dokku to Docker 1.6.2. Docker 1.7.0 introduced changes in `doc
 
 ### New Features
 
-- #1245: @arthurschreiber Support config variables containing `\n`
+- #1245: @arthurschreiber Support config variables containing newlines
 - #1257: @josegonzalez Split nginx ssl logs by $APP
 
 ### Bug Fixes

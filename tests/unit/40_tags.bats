@@ -3,11 +3,13 @@
 load test_helper
 
 setup() {
+  global_setup
   deploy_app
 }
 
 teardown() {
   destroy_app
+  global_teardown
 }
 
 @test "(tags) tags:create, tags, tags:destroy" {
@@ -43,4 +45,11 @@ teardown() {
   echo "output: "$output
   echo "status: "$status
   assert_success
+}
+
+@test "(tags) tags:deploy (missing tag)" {
+  run /bin/bash -c "dokku tags:deploy $TEST_APP missing-tag"
+  echo "output: "$output
+  echo "status: "$status
+  assert_failure
 }

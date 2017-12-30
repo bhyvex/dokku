@@ -4,16 +4,39 @@ source "$PLUGIN_CORE_AVAILABLE_PATH/common/functions"
 source "$PLUGIN_AVAILABLE_PATH/certs/functions"
 source "$PLUGIN_AVAILABLE_PATH/config/functions"
 source "$PLUGIN_AVAILABLE_PATH/domains/functions"
+source "$PLUGIN_AVAILABLE_PATH/proxy/functions"
 source "$PLUGIN_AVAILABLE_PATH/ps/functions"
+
+get_nginx_location() {
+  declare desc="check that nginx is at the expected location and return it"
+  local NGINX_LOCATION
+
+  NGINX_LOCATION=$(which nginx 2>/dev/null)
+  if [[ -z "$NGINX_LOCATION" ]]; then
+    NGINX_LOCATION="/usr/sbin/nginx"
+  fi
+
+  if [[ ! -x "$NGINX_LOCATION" ]]; then
+    dokku_log_fail "Could not find nginx binary in \$PATH or at '${NGINX_LOCATION}'."
+  fi
+
+  echo "$NGINX_LOCATION"
+}
 
 validate_nginx() {
   declare desc="validate entire nginx config"
+  local NGINX_LOCATION
+  NGINX_LOCATION=$(get_nginx_location)
+  if [[ -z "$NGINX_LOCATION" ]]; then
+    exit 1;
+  fi
+
   set +e
-  sudo /usr/sbin/nginx -t > /dev/null 2>&1
+  sudo "$NGINX_LOCATION" -t > /dev/null 2>&1
   local exit_code=$?
   set -e
   if [[ "$exit_code" -ne "0" ]]; then
-    sudo /usr/sbin/nginx -t
+    sudo "$NGINX_LOCATION" -t
     shopt -s nullglob
     local conf_file
     for conf_file in $DOKKU_ROOT/*/nginx.conf; do
@@ -39,9 +62,9 @@ restart_nginx() {
       sudo /sbin/service nginx reload > /dev/null
       ;;
 
-    arch)
+    arch|centos)
       sudo /usr/bin/systemctl reload nginx
-	  ;;
+      ;;
   esac
 }
 
@@ -81,14 +104,13 @@ configure_nginx_ports() {
     config_set --no-restart "$APP" DOKKU_NGINX_PORT="$NGINX_PORT"
   fi
   if [[ -z "$DOKKU_NGINX_SSL_PORT" ]]; then
-    if (is_ssl_enabled "$APP") && [[ -z "$RAW_TCP_PORTS" ]]; then
-      if [[ "$IS_APP_VHOST_ENABLED" == "false" ]]; then
+    if (is_ssl_enabled "$APP"); then
+      local NGINX_SSL_PORT=443
+      if [[ -z "$RAW_TCP_PORTS" ]] && [[ "$IS_APP_VHOST_ENABLED" == "false" ]]; then
         dokku_log_info1 "no nginx ssl port set. setting to random open high port"
-        local NGINX_SSL_PORT=$(get_available_port)
-      else
-        local NGINX_SSL_PORT=443
+        NGINX_SSL_PORT=$(get_available_port)
       fi
-    config_set --no-restart "$APP" DOKKU_NGINX_SSL_PORT="$NGINX_SSL_PORT"
+      config_set --no-restart "$APP" DOKKU_NGINX_SSL_PORT="$NGINX_SSL_PORT"
     fi
   fi
   if [[ -z "$DOKKU_PROXY_PORT_MAP" ]]; then
@@ -148,15 +170,10 @@ get_custom_nginx_template() {
 }
 
 is_spdy_enabled() {
-  declare desc="detects whether the installed nginx version has spdy or http2 support"
+  declare desc="detects whether the installed nginx version has spdy support"
   local NGINX_VERSION="$1"
   local MAJOR_VERSION MINOR_VERSION PATCH_VERSION
   local HAS_SUPPORT=true
-
-  if ! which nginx > /dev/null 2>&1; then
-    echo $HAS_SUPPORT
-    return
-  fi
 
   MAJOR_VERSION=$(echo "$NGINX_VERSION" | awk '{split($0,a,"."); print a[1]}')
   MINOR_VERSION=$(echo "$NGINX_VERSION" | awk '{split($0,a,"."); print a[2]}')
@@ -174,6 +191,28 @@ is_spdy_enabled() {
   echo $HAS_SUPPORT
 }
 
+is_http2_enabled() {
+  declare desc="detects whether the installed nginx version has http2 support"
+  local NGINX_VERSION="$1"
+  local MAJOR_VERSION MINOR_VERSION PATCH_VERSION
+  local HAS_SUPPORT=false
+
+  MAJOR_VERSION=$(echo "$NGINX_VERSION" | awk '{split($0,a,"."); print a[1]}')
+  MINOR_VERSION=$(echo "$NGINX_VERSION" | awk '{split($0,a,"."); print a[2]}')
+  PATCH_VERSION=$(echo "$NGINX_VERSION" | awk '{split($0,a,"."); print a[3]}')
+  if [[ "$MAJOR_VERSION" -ge "2" ]]; then
+    HAS_SUPPORT=true
+  elif [[ "$MAJOR_VERSION" -eq "1" ]]; then
+    if [[ "$MINOR_VERSION" -eq "11" ]] && [[ "$PATCH_VERSION" -ge "5" ]]; then
+      HAS_SUPPORT=true
+    elif [[ "$MINOR_VERSION" -ge "12" ]]; then
+      HAS_SUPPORT=true
+    fi
+  fi
+
+  echo $HAS_SUPPORT
+}
+
 nginx_build_config() {
   declare desc="build nginx config to proxy app containers using sigil"
   local APP="$1"; verify_app_name "$APP"
@@ -184,22 +223,13 @@ nginx_build_config() {
   local NGINX_TEMPLATE="$DEFAULT_NGINX_TEMPLATE"; local SCHEME=http
   local NGINX_TEMPLATE_SOURCE="built-in"; local APP_SSL_PATH="$DOKKU_ROOT/$APP/tls"
   local RAW_TCP_PORTS="$(get_app_raw_tcp_ports "$APP")"
+  local DOKKU_APP_LISTENERS
 
-  local DOKKU_DISABLE_PROXY=$(config_get "$APP" DOKKU_DISABLE_PROXY)
   local IS_APP_VHOST_ENABLED=$(is_app_vhost_enabled "$APP")
 
-  if [[ -z "$DOKKU_DISABLE_PROXY" ]]; then
+  if [[ "$(is_app_proxy_enabled "$APP")" == "true" ]]; then
     if [[ -z "$DOKKU_APP_LISTEN_PORT" ]] && [[ -z "$DOKKU_APP_LISTEN_IP" ]]; then
-      shopt -s nullglob
-      local DOKKU_APP_IP_FILE
-      for DOKKU_APP_IP_FILE in $DOKKU_ROOT/$APP/IP.web.*; do
-        local DOKKU_APP_PORT_FILE="${DOKKU_APP_IP_FILE//IP/PORT}"
-        local DOKKU_APP_LISTENER_IP=$(< "$DOKKU_APP_IP_FILE")
-        local DOKKU_APP_LISTENER_PORT=$(< "$DOKKU_APP_PORT_FILE")
-        local DOKKU_APP_LISTENERS+="$DOKKU_APP_LISTENER_IP:$DOKKU_APP_LISTENER_PORT "
-      done
-      local DOKKU_APP_LISTENERS="$(echo "$DOKKU_APP_LISTENERS" | xargs)"
-      shopt -u nullglob
+      DOKKU_APP_LISTENERS="$(plugn trigger network-get-listeners "$APP" | xargs)"
     elif [[ -n "$DOKKU_APP_LISTEN_PORT" ]] && [[ -n "$DOKKU_APP_LISTEN_IP" ]]; then
       local PASSED_LISTEN_IP_PORT=true
     fi
@@ -245,18 +275,35 @@ nginx_build_config() {
       else
         local SSL_VHOSTS=$(< "$DOKKU_ROOT/HOSTNAME")
       fi
-      local SSL_SERVER_NAME=$(echo "$SSL_VHOSTS" | xargs)
+      local SSL_SERVER_NAME
+      local host
+      for host in $SSL_VHOSTS; do
+        # SSL_SERVER_NAME should only contain items not in NOSSL_SERVER_NAME
+        if [[ ! $NOSSL_SERVER_NAME =~ (^|[[:space:]])$host($|[[:space:]]) ]]; then
+          SSL_SERVER_NAME="${host}${SSL_SERVER_NAME:+ $SSL_SERVER_NAME}"
+        fi
+      done
     fi
 
-    local NGINX_VERSION="$(nginx -v 2>&1 | cut -d'/' -f 2)"
-    local SPDY_SUPPORTED="$(is_spdy_enabled "$NGINX_VERSION")"
+    local NGINX_LOCATION NGINX_VERSION SPDY_SUPPORTED HTTP2_SUPPORTED
+    NGINX_LOCATION=$(get_nginx_location)
+    if [[ -z "$NGINX_LOCATION" ]]; then
+      exit 1;
+    fi
+    NGINX_VERSION="$("$NGINX_LOCATION" -v 2>&1 | cut -d'/' -f 2)"
+    SPDY_SUPPORTED="$(is_spdy_enabled "$NGINX_VERSION")"
+    HTTP2_SUPPORTED="$(is_http2_enabled "$NGINX_VERSION")"
+
+    PROXY_PORT_MAP=$(echo "$PROXY_PORT_MAP" | xargs) # trailing spaces mess up default template
 
     eval "$(config_export app "$APP")"
     local SIGIL_PARAMS=(-f $NGINX_TEMPLATE APP="$APP" DOKKU_ROOT="$DOKKU_ROOT"
           NOSSL_SERVER_NAME="$NOSSL_SERVER_NAME"
           DOKKU_APP_LISTENERS="$DOKKU_APP_LISTENERS"
+          DOKKU_LIB_ROOT="$DOKKU_LIB_ROOT"
           PASSED_LISTEN_IP_PORT="$PASSED_LISTEN_IP_PORT"
           SPDY_SUPPORTED="$SPDY_SUPPORTED"
+          HTTP2_SUPPORTED="$HTTP2_SUPPORTED"
           DOKKU_APP_LISTEN_PORT="$DOKKU_APP_LISTEN_PORT" DOKKU_APP_LISTEN_IP="$DOKKU_APP_LISTEN_IP"
           APP_SSL_PATH="$APP_SSL_PATH" SSL_INUSE="$SSL_INUSE" SSL_SERVER_NAME="$SSL_SERVER_NAME"
           NGINX_PORT="$NGINX_PORT" NGINX_SSL_PORT="$NGINX_SSL_PORT" RAW_TCP_PORTS="$RAW_TCP_PORTS"
@@ -288,7 +335,7 @@ nginx_build_config() {
       xargs -i echo "$SCHEME://{}" <<< "$(echo "${SSL_VHOSTS}" "${NONSSL_VHOSTS}" | tr ' ' '\n' | sort -u)" >> "$URLS_PATH"
     fi
   else
-    # note because this clause is long. if $DOKKU_DISABLE_PROXY is set:
+    # note because this clause is long. if the proxy is disabled:
     dokku_log_info1 "nginx support is disabled for app ($APP)."
     if [[ -f "$DOKKU_ROOT/$APP/nginx.conf" ]]; then
       dokku_log_info1 "deleting nginx.conf"

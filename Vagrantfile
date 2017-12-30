@@ -45,6 +45,8 @@ Vagrant::configure("2") do |config|
     vm.vm.provider :virtualbox do |vb|
       vb.customize ["modifyvm", :id, "--natdnshostresolver1", "off"]
       vb.customize ["modifyvm", :id, "--natdnsproxy1", "off"]
+      # enable NAT adapter cable https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=838999
+      vb.customize ["modifyvm", :id, "--cableconnected1", "on"]
     end
 
     vm.vm.provision :shell, :inline => "export DEBIAN_FRONTEND=noninteractive && apt-get update > /dev/null && apt-get -qq -y install git > /dev/null && cd /root/dokku && #{make_cmd}"
@@ -76,13 +78,22 @@ Vagrant::configure("2") do |config|
     vm.vm.provision :shell, :inline => "cd /root/dokku && make install-from-deb"
   end
 
+  config.vm.define "dokku-rpm", autostart: false do |vm|
+    vm.vm.box = "centos/7"
+    vm.vm.synced_folder File.dirname(__FILE__), "/root/dokku"
+    vm.vm.network :forwarded_port, guest: 80, host: FORWARDED_PORT
+    vm.vm.hostname = "#{DOKKU_DOMAIN}"
+    vm.vm.network :private_network, ip: DOKKU_IP
+    vm.vm.provision :shell, :inline => "cd /root/dokku && bash bootstrap.sh"
+  end
+
   config.vm.define "build", autostart: false do |vm|
     vm.vm.synced_folder File.dirname(__FILE__), "/root/dokku"
     vm.vm.network :forwarded_port, guest: 80, host: FORWARDED_PORT
     vm.vm.hostname = "#{DOKKU_DOMAIN}"
     vm.vm.network :private_network, ip: DOKKU_IP
     vm.vm.provision :shell, :inline => "export DEBIAN_FRONTEND=noninteractive && apt-get update > /dev/null && apt-get -qq -y install git > /dev/null && cd /root/dokku && #{make_cmd}"
-    vm.vm.provision :shell, :inline => "export IS_RELEASE=true && cd /root/dokku && make deb-all"
+    vm.vm.provision :shell, :inline => "export IS_RELEASE=true && cd /root/dokku && make deb-all rpm-all"
   end
 
   config.vm.define "build-arch", autostart: false do |vm|

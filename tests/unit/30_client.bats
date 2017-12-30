@@ -3,6 +3,7 @@
 load test_helper
 
 setup() {
+  global_setup
   export DOKKU_HOST=dokku.me
   create_app
 }
@@ -10,6 +11,7 @@ setup() {
 teardown() {
   destroy_app
   unset DOKKU_HOST
+  global_teardown
 }
 
 @test "(client) unconfigured DOKKU_HOST" {
@@ -21,7 +23,7 @@ teardown() {
 }
 
 @test "(client) no args should print help" {
-  run /bin/bash -c "./contrib/dokku_client.sh | head -1 | egrep -q '^Usage: dokku \[.+\] COMMAND <app>.*'"
+  run /bin/bash -c "./contrib/dokku_client.sh | head -1 | grep -E 'Usage: dokku \[.+\] COMMAND <app>.*'"
   echo "output: "$output
   echo "status: "$status
   assert_success

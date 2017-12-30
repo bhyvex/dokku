@@ -5,8 +5,10 @@ ifneq ($(shell shellcheck --version > /dev/null 2>&1 ; echo $$?),0)
 ifeq ($(SYSTEM),Darwin)
 	brew install shellcheck
 else
+	sudo apt-key adv --keyserver pgp.mit.edu --recv-keys 5072E1F5
 	sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu trusty-backports main restricted universe multiverse'
-	sudo apt-get update && sudo apt-get install -y shellcheck
+	sudo rm -rf /var/lib/apt/lists/* && sudo apt-get clean
+	sudo apt-get update -qq && sudo apt-get install -qq -y shellcheck
 endif
 endif
 
@@ -73,13 +75,43 @@ lint:
 	@echo linting...
 	@$(QUIET) find . -not -path '*/\.*' -not -path './debian/*' -type f | xargs file | grep text | awk -F ':' '{ print $$1 }' | xargs head -n1 | egrep -B1 "bash" | grep "==>" | awk '{ print $$2 }' | xargs shellcheck -e SC2034
 
-unit-tests:
-	@echo running unit tests...
+ci-go-coverage:
+	docker run --rm -ti \
+		-e DOKKU_ROOT=/home/dokku \
+		-e CODACY_TOKEN=$$CODACY_TOKEN \
+		-e CIRCLE_SHA1=$$CIRCLE_SHA1 \
+		-v $$PWD:$(GO_REPO_ROOT) \
+		-w $(GO_REPO_ROOT) \
+		$(BUILD_IMAGE) \
+		bash -c "go get github.com/onsi/gomega github.com/schrej/godacov github.com/haya14busa/goverage && \
+			go list ./... | egrep -v '/vendor/|/tests/apps/' | xargs goverage -v -coverprofile=coverage.out && \
+			godacov -t $$CODACY_TOKEN -r ./coverage.out -c $$CIRCLE_SHA1" || exit $$?
+
+go-tests:
+	@echo running go unit tests...
+	docker run --rm -ti \
+		-e DOKKU_ROOT=/home/dokku \
+		-v $$PWD:$(GO_REPO_ROOT) \
+		-w $(GO_REPO_ROOT) \
+		$(BUILD_IMAGE) \
+		bash -c "go get github.com/onsi/gomega && \
+			go list ./... | egrep -v '/vendor/|/tests/apps/' | xargs go test -v -p 1 -race" || exit $$?
+
+unit-tests: go-tests
+	@echo running bats unit tests...
 ifndef UNIT_TEST_BATCH
 	@$(QUIET) bats tests/unit
 else
 	@$(QUIET) ./tests/ci/unit_test_runner.sh $$UNIT_TEST_BATCH
 endif
+
+deploy-test-go-fail-predeploy:
+	@echo deploying go-fail-predeploy app...
+	cd tests && ./test_deploy ./apps/go-fail-predeploy dokku.me '' true
+
+deploy-test-go-fail-postdeploy:
+	@echo deploying go-fail-postdeploy app...
+	cd tests && ./test_deploy ./apps/go-fail-postdeploy dokku.me '' true
 
 deploy-test-checks-root:
 	@echo deploying checks-root app...
@@ -156,6 +188,8 @@ deploy-test-static:
 deploy-tests:
 	@echo running deploy tests...
 	@$(QUIET) $(MAKE) deploy-test-checks-root
+	@$(QUIET) $(MAKE) deploy-test-go-fail-predeploy
+	@$(QUIET) $(MAKE) deploy-test-go-fail-postdeploy
 	@$(QUIET) $(MAKE) deploy-test-config
 	@$(QUIET) $(MAKE) deploy-test-clojure
 	@$(QUIET) $(MAKE) deploy-test-dockerfile
@@ -174,3 +208,7 @@ deploy-tests:
 	@$(QUIET) $(MAKE) deploy-test-static
 
 test: setup-deploy-tests lint unit-tests deploy-tests
+
+test-ci:
+	@echo "executing tests: $(shell circleci tests glob tests/unit/*.bats | circleci tests split --split-by=timings | xargs)"
+	bats $(shell circleci tests glob tests/unit/*.bats | circleci tests split --split-by=timings | xargs)

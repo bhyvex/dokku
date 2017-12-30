@@ -1,6 +1,6 @@
 # Plugin triggers
 
-[Plugin triggers](https://github.com/dokku/plugn) (formerly [pluginhooks](https://github.com/progrium/pluginhook)) are a good way to jack into existing dokku infrastructure. You can use them to modify the output of various dokku commands or override internal configuration.
+[Plugin triggers](https://github.com/dokku/plugn) (formerly [pluginhooks](https://github.com/progrium/pluginhook)) are a good way to jack into existing Dokku infrastructure. You can use them to modify the output of various Dokku commands or override internal configuration.
 
 Plugin triggers are simply scripts that are executed by the system. You can use any language you want, so long as the script:
 
@@ -9,7 +9,7 @@ Plugin triggers are simply scripts that are executed by the system. You can use 
 
 For instance, if you wanted to write a plugin trigger in PHP, you would need to have `php` installed and available on the CLI prior to plugin trigger invocation.
 
-The following is an example for the `nginx-hostname` plugin trigger. It reverses the hostname that is provided to nginx during deploys. If you created an executable file named `nginx-hostname` with the following code in your plugin trigger, it would be invoked by dokku during the normal app deployment process:
+The following is an example for the `nginx-hostname` plugin trigger. It reverses the hostname that is provided to nginx during deploys. If you created an executable file named `nginx-hostname` with the following code in your plugin trigger, it would be invoked by Dokku during the normal app deployment process:
 
 ```shell
 #!/usr/bin/env bash
@@ -23,11 +23,11 @@ echo "$NEW_SUBDOMAIN.$VHOST"
 
 ## Available plugin triggers
 
-There are a number of plugin-related triggers. These can be optionally implemented by plugins and allow integration into the standard dokku setup/teardown process.
+There are a number of plugin-related triggers. These can be optionally implemented by plugins and allow integration into the standard Dokku setup/teardown process.
 
-The following plugin triggers describe those available to a dokku installation. As well, there is an example for each trigger that you can use as templates for your own plugin development.
+The following plugin triggers describe those available to a Dokku installation. As well, there is an example for each trigger that you can use as templates for your own plugin development.
 
-> The example plugin trigger code is not guaranteed to be implemented as in within dokkku, and are merely simplified examples. Please look at the dokku source for larger, more in-depth examples.
+> The example plugin trigger code is not guaranteed to be implemented as in within dokku, and are merely simplified examples. Please look at the Dokku source for larger, more in-depth examples.
 
 ### `post-config-update`
 
@@ -63,9 +63,9 @@ echo false
 
 ### `check-deploy`
 
-- Description: Allows you to run checks on a deploy before dokku allows the container to handle requests.
+- Description: Allows you to run checks on a deploy before Dokku allows the container to handle requests.
 - Invoked by: `dokku deploy`
-- Arguments: `$CONTAINER_ID $APP $INTERNAL_PORT $INTERNAL_IP_ADDRESS`
+- Arguments: `$APP $CONTAINER_ID $PROC_TYPE $PORT $IP`
 - Example:
 
 ```shell
@@ -76,7 +76,7 @@ echo false
 set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
 source "$PLUGIN_AVAILABLE_PATH/config/functions"
 
-CONTAINERID="$1"; APP="$2"; PORT="$3" ; HOSTNAME="${4:-localhost}"
+APP="$1"; CONTAINERID="$2"; PROC_TYPE="$3"; PORT="$4" ; IP="$5"
 
 eval "$(config_export app $APP)"
 DOKKU_DISABLE_DEPLOY="${DOKKU_DISABLE_DEPLOY:-false}"
@@ -132,6 +132,24 @@ help_content
     ;;
 
 esac
+```
+
+### `core-post-deploy`
+
+> To avoid issues with community plugins, this plugin trigger should be used *only* for core plugins. Please avoid using this trigger in your own plugins.
+
+- Description: Allows running of commands after an application's processes have been scaled up, but before old containers are torn down. Dokku core currently uses this to switch traffic on nginx.
+- Invoked by: `dokku deploy`
+- Arguments: `$APP $INTERNAL_PORT $INTERNAL_IP_ADDRESS $IMAGE_TAG`
+- Example:
+
+```shell
+#!/usr/bin/env bash
+# Notify an external service that a successful deploy has occurred.
+
+set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
+
+curl "http://httpstat.us/200"
 ```
 
 ### `dependencies`
@@ -241,7 +259,7 @@ cache-bust-build-arg "$@"
 
 - Description:
 - Invoked by: `dokku deploy`
-- Arguments: `$APP $IMAGE_TAG`
+- Arguments: `$APP $IMAGE_TAG [$PROC_TYPE $CONTAINER_INDEX]`
 - Example:
 
 ```shell
@@ -303,6 +321,10 @@ set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
 # TODO
 ```
 
+> WARNING: The `git-pre-pull` trigger should _not_ be used for authentication
+since it does not get called for commands that use `git-upload-archive` such
+as `git archive`. Instead, use the [`user-auth`](#user-auth) trigger.
+
 ### `install`
 
 - Description: Used to setup any files/configuration for a plugin.
@@ -312,7 +334,7 @@ set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
 
 ```shell
 #!/usr/bin/env bash
-# Sets the hostname of the dokku server
+# Sets the hostname of the Dokku server
 # based on the output of `hostname -f`
 
 set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
@@ -320,6 +342,141 @@ set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
 if [[ ! -f  "$DOKKU_ROOT/HOSTNAME" ]]; then
   hostname -f > $DOKKU_ROOT/HOSTNAME
 fi
+```
+
+### `network-build-config`
+
+- Description: Rebuilds network configuration
+- Invoked by: `internally triggered by proxy-build-config within proxy implementations`
+- Arguments: `$APP`
+- Example:
+
+```shell
+#!/usr/bin/env bash
+
+set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
+
+# TODO
+```
+
+### `network-compute-ports`
+
+- Description: Computes the ports for a given app container
+- Invoked by: `internally triggered by proxy-build-config within proxy implementations`
+- Arguments: `$APP`
+- Example:
+
+```shell
+#!/usr/bin/env bash
+
+set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
+
+# TODO
+```
+
+### `network-config-exists`
+
+- Description: Returns whether the network configuration for a given app exists
+- Invoked by: `internally triggered by core-post-deploy within proxy implementations`
+- Arguments: `$APP`
+- Example:
+
+```shell
+#!/usr/bin/env bash
+
+set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
+
+# TODO
+```
+
+### `network-get-ipaddr`
+
+- Description: Return the ipaddr for a given app container
+- Invoked by: `internally triggered by a deploy`
+- Arguments: `$APP $PROC_TYPE $CONTAINER_ID`
+- Example:
+
+```shell
+#!/usr/bin/env bash
+
+set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
+
+# TODO
+```
+
+### `network-get-listeners`
+
+- Description: Return the listeners (host:port combinations) for a given app container
+- Invoked by: `internally triggered by a deploy`
+- Arguments: `$APP`
+- Example:
+
+```shell
+#!/usr/bin/env bash
+
+set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
+
+# TODO
+```
+
+### `network-get-property`
+
+- Description: Return the network value for an application's property
+- Invoked by: `internally triggered by a deploy`
+- Arguments: `$APP $KEY`
+- Example:
+
+```shell
+#!/usr/bin/env bash
+
+set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
+
+# TODO
+```
+
+### `network-get-port`
+
+- Description: Return the port for a given app container
+- Invoked by: `internally triggered by a deploy`
+- Arguments: `$APP $PROC_TYPE $CONTAINER_ID $IS_HEROKUISH_CONTAINER`
+- Example:
+
+```shell
+#!/usr/bin/env bash
+
+set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
+
+# TODO
+```
+
+### `network-write-ipaddr`
+
+- Description: Write the ipaddr for a given app index
+- Invoked by: `internally triggered by a deploy`
+- Arguments: `$APP $PROC_TYPE $CONTAINER_INDEX $IP_ADDRESS`
+- Example:
+
+```shell
+#!/usr/bin/env bash
+
+set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
+
+# TODO
+```
+
+### `network-write-port`
+
+- Description: Write the port for a given app index
+- Invoked by: `internally triggered by a deploy`
+- Arguments: `$APP $PROC_TYPE $CONTAINER_INDEX $PORT`
+- Example:
+
+```shell
+#!/usr/bin/env bash
+
+set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
+
+# TODO
 ```
 
 ### `nginx-hostname`
@@ -388,6 +545,40 @@ set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
 # TODO
 ```
 
+### `post-certs-remove`
+
+- Description: Allows you to run commands after a cert is removed
+- Invoked by: `dokku certs:remove`
+- Arguments: `$APP`
+- Example:
+
+```shell
+#!/usr/bin/env bash
+
+set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
+source "$PLUGIN_CORE_AVAILABLE_PATH/common/functions"
+APP="$1"; verify_app_name "$APP"
+
+# TODO
+```
+
+### `post-certs-update`
+
+- Description: Allows you to run commands after a cert is added/updated
+- Invoked by: `dokku certs:add`, `dokku certs:update`
+- Arguments: `$APP`
+- Example:
+
+```shell
+#!/usr/bin/env bash
+
+set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
+source "$PLUGIN_CORE_AVAILABLE_PATH/common/functions"
+APP="$1"; verify_app_name "$APP"
+
+# TODO
+```
+
 ### `post-create`
 
 - Description: Can be used to run commands after an application is created.
@@ -430,7 +621,9 @@ dokku postgres:destroy $APP
 
 ### `post-deploy`
 
-- Description: Allows running of commands after an application's processes have been scaled up, but before old containers are torn down. Dokku core currently uses this to switch traffic on nginx.
+> Please see [core-post-deploy](#core-post-deploy) if contributing a core plugin with the `post-deploy` hook.
+
+- Description: Allows running of commands after an application's processes have been scaled up, but before old containers are torn down. Dokku calls this _after_ `core-post-deploy`. Deployment Tasks are also invoked by this plugin trigger.
 - Invoked by: `dokku deploy`
 - Arguments: `$APP $INTERNAL_PORT $INTERNAL_IP_ADDRESS $IMAGE_TAG`
 - Example:
@@ -447,7 +640,7 @@ curl "http://httpstat.us/200"
 ### `post-domains-update`
 
 - Description: Allows you to run commands once the domain for an application has been updated. It also sends in the command that has been used. This can be "add", "clear" or "remove". The third argument will be the optional list of domains
-- Invoked by: `dokku domains:add`, `dokku domains:clear`, `dokku domains:remove`
+- Invoked by: `dokku domains:add`, `dokku domains:clear`, `dokku domains:remove`, `dokku domains:set`
 - Arguments: `$APP` `action name` `domains`
 - Example:
 
@@ -459,6 +652,28 @@ curl "http://httpstat.us/200"
 set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
 
 sudo service haproxy reload
+```
+
+### `post-extract`
+
+- Description: Allows you to modify the contents of an application *after* it has been extracted from git/tarball but *before* the image source type is detected.
+- Invoked by: `dokku tar:in`, `dokku tar:from` and the `receive-app` plugin trigger
+- Arguments: `$APP` `$TMP_WORK_DIR` `$REV`
+- Example:
+
+```shell
+#!/usr/bin/env bash
+# Adds a clock process to an app's Procfile
+
+set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
+source "$PLUGIN_CORE_AVAILABLE_PATH/common/functions"
+APP="$1"; verify_app_name "$APP"
+TMP_WORK_DIR="$2"
+REV="$3" # optional, may not be sent for tar-based builds
+
+pushd "$TMP_WORK_DIR" > /dev/null
+touch Procfile
+echo "clock: some-command" >> Procfile
 ```
 
 ### `post-proxy-ports-update`
@@ -717,10 +932,28 @@ APP="$1"; verify_app_name "$APP"
 # TODO
 ```
 
-### `post-certs-update`
+### `pre-start`
 
-- Description: Allows you to run commands after a cert is added/updated
-- Invoked by: `dokku certs:add`, `dokku certs:update`
+- Description: Can be used to run commands before an application is started
+- Invoked by: `dokku ps:start`
+- Arguments: `$APP`
+- Example:
+
+```shell
+#!/usr/bin/env bash
+# Notifies an example url that an application is starting
+
+set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
+
+APP="$1";
+
+curl "https://example.com/starting/${APP}" || true
+```
+
+### `proxy-build-config`
+
+- Description: Builds the proxy implementation configuration for a given app
+- Invoked by: `internally triggered by ps:restore`
 - Arguments: `$APP`
 - Example:
 
@@ -728,16 +961,14 @@ APP="$1"; verify_app_name "$APP"
 #!/usr/bin/env bash
 
 set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
-source "$PLUGIN_CORE_AVAILABLE_PATH/common/functions"
-APP="$1"; verify_app_name "$APP"
 
 # TODO
 ```
 
-### `post-certs-remove`
+### `proxy-enable`
 
-- Description: Allows you to run commands after a cert is removed
-- Invoked by: `dokku certs:remove`
+- Description: Enables the configured proxy implementation for an app
+- Invoked by: `internally triggered by ps:restore`
 - Arguments: `$APP`
 - Example:
 
@@ -745,8 +976,21 @@ APP="$1"; verify_app_name "$APP"
 #!/usr/bin/env bash
 
 set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
-source "$PLUGIN_CORE_AVAILABLE_PATH/common/functions"
-APP="$1"; verify_app_name "$APP"
+
+# TODO
+```
+
+### `proxy-disable`
+
+- Description: Disables the configured proxy implementation for an app
+- Invoked by: `internally triggered by ps:restore`
+- Arguments: `$APP`
+- Example:
+
+```shell
+#!/usr/bin/env bash
+
+set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
 
 # TODO
 ```
@@ -778,7 +1022,7 @@ dokku hg-build $APP $REV
 
 ```shell
 #!/bin/bash
-# Gives dokku the ability to support multiple branches for a given service
+# Gives Dokku the ability to support multiple branches for a given service
 # Allowing you to have multiple staging environments on a per-branch basis
 
 reference_app=$1
@@ -787,7 +1031,7 @@ newrev=$2
 APP=${refname/*\//}.$reference_app
 
 if [[ ! -d "$DOKKU_ROOT/$APP" ]]; then
-  REFERENCE_REPO="$DOKKU_ROOT/$reference_app
+  REFERENCE_REPO="$DOKKU_ROOT/$reference_app"
   git clone --bare --shared --reference "$REFERENCE_REPO" "$REFERENCE_REPO" "$DOKKU_ROOT/$APP" > /dev/null
 fi
 plugn trigger receive-app $APP $newrev
@@ -843,8 +1087,28 @@ docker push $DOCKER_HUB_USER/$APP:$IMAGE_TAG
 set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
 APP="$1"; IMAGE_TAG="$2"
 
-some code to remove a docker hub tag because it's not implemented in the CLI....
+# some code to remove a docker hub tag because it's not implemented in the CLI...
 ```
+
+### `uninstall`
+
+ - Description: Used to cleanup after itself.
+ - Invoked by: `dokku plugin:uninstall`
+ - Arguments: `$PLUGIN`
+ - Example:
+
+```shell
+#!/usr/bin/env bash
+# Cleanup up extra containers created
+
+set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
+
+PLUGIN="$1"
+
+[[ "$PLUGIN" = "my-plugin" ]] && docker rmi -f "${PLUGIN_IMAGE_DEPENDENCY}"
+```
+
+ > To avoid uninstalling other plugins make sure to check the plugin name like shown in the example.
 
 ### `update`
 
@@ -865,7 +1129,7 @@ sudo BUILD_STACK=true make install
 
 ### `user-auth`
 
-This is a special plugin trigger that is executed on *every* command run. As dokku sometimes internally invokes the `dokku` command, special care should be taken to properly handle internal command redirects.
+This is a special plugin trigger that is executed on *every* command run. As Dokku sometimes internally invokes the `dokku` command, special care should be taken to properly handle internal command redirects.
 
 Note that the trigger should exit as follows:
 
@@ -882,7 +1146,7 @@ sshcommand acl-add dokku NAME < $PATH_TO_SSH_KEY
 
 Note that the `NAME` value is set at the first ssh key match. If an ssh key is set in the `/home/dokku/.ssh/authorized_keys` multiple times, the first match will decide the value.
 
-- Description: Allows you to deny access to a dokku command by either ssh user or associated ssh-command NAME user.
+- Description: Allows you to deny access to a Dokku command by either ssh user or associated ssh-command NAME user.
 - Invoked by `dokku`
 - Arguments: `$SSH_USER $SSH_NAME $DOKKU_COMMAND`
 - Example:

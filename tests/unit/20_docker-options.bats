@@ -3,11 +3,13 @@
 load test_helper
 
 setup() {
+  global_setup
   create_app
 }
 
 teardown() {
   destroy_app
+  global_teardown
 }
 
 @test "(docker-options) docker-options:add (all phases)" {
@@ -67,7 +69,7 @@ teardown() {
   echo "output: "$output
   echo "status: "$status
   assert_success
-  run /bin/bash -c "dokku docker-options $TEST_APP | xargs"
+  run /bin/bash -c "dokku docker-options $TEST_APP 2> /dev/null | xargs"
   echo "output: "$output
   echo "status: "$status
   assert_output "Deploy options: --restart=on-failure:10"
@@ -86,7 +88,7 @@ teardown() {
   echo "output: "$output
   echo "status: "$status
   assert_success
-  run /bin/bash -c "dokku docker-options $TEST_APP build"
+  run /bin/bash -c "dokku docker-options $TEST_APP build 2> /dev/null"
   echo "output: "$output
   echo "status: "$status
   assert_output "Build options: none"
@@ -105,7 +107,7 @@ teardown() {
   echo "output: "$output
   echo "status: "$status
   assert_success
-  run /bin/bash -c "dokku docker-options $TEST_APP deploy | xargs"
+  run /bin/bash -c "dokku docker-options $TEST_APP deploy 2> /dev/null | xargs"
   echo "output: "$output
   echo "status: "$status
   assert_output "Deploy options: --restart=on-failure:10"
@@ -124,7 +126,7 @@ teardown() {
   echo "output: "$output
   echo "status: "$status
   assert_success
-  run /bin/bash -c "dokku docker-options $TEST_APP run"
+  run /bin/bash -c "dokku docker-options $TEST_APP run 2> /dev/null"
   echo "output: "$output
   echo "status: "$status
   assert_output "Run options: none"

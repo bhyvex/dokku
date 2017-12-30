@@ -3,6 +3,7 @@
 load test_helper
 
 setup() {
+  global_setup
   [[ -f ${DOKKU_ROOT}/ENV ]] && mv -f ${DOKKU_ROOT}/ENV ${DOKKU_ROOT}/ENV.bak
   sudo -H -u dokku /bin/bash -c "echo 'export global_test=true' > ${DOKKU_ROOT}/ENV"
   create_app
@@ -14,6 +15,7 @@ teardown() {
   if [[ -f ${DOKKU_ROOT}/ENV.bak ]];then
     mv -f ${DOKKU_ROOT}/ENV.bak ${DOKKU_ROOT}/ENV
   fi
+  global_teardown
 }
 
 @test "(config) config:set --global" {
@@ -139,6 +141,20 @@ teardown() {
 @test "(config) global config (dockerfile)" {
   deploy_app dockerfile
   run bash -c "dokku run $TEST_APP env | egrep '^global_test=true'"
+  echo "output: "$output
+  echo "status: "$status
+  assert_success
+}
+
+@test "(config) deploy specific DOKKU_DEPLOY_BRANCH" {
+  run ssh dokku@dokku.me config:set --global DOKKU_DEPLOY_BRANCH=global-branch
+  GIT_REMOTE_BRANCH=global-branch deploy_app
+  echo "output: "$output
+  echo "status: "$status
+  assert_success
+
+  run ssh dokku@dokku.me config:set $TEST_APP DOKKU_DEPLOY_BRANCH=app-branch
+  GIT_REMOTE_BRANCH=app-branch deploy_app
   echo "output: "$output
   echo "status: "$status
   assert_success

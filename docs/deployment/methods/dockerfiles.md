@@ -6,7 +6,7 @@ While Dokku normally defaults to using [heroku buildpacks](https://devcenter.her
 
 > Dockerfile support is considered a **Power User** feature. By using Dockerfile-based deployment, you agree that you will not have the same comfort as that enjoyed by Buildpack users, and Dokku features may work differently. Differences between the two systems will be documented here.
 
-To use a dockerfiles for deployment, commit a valid `Dockerfile` to the root of your repository and push the repository to your Dokku installation. If this file is detected, Dokku will default to using it to construct containers **except** in the following two cases:
+To use a dockerfile for deployment, commit a valid `Dockerfile` to the root of your repository and push the repository to your Dokku installation. If this file is detected, Dokku will default to using it to construct containers **except** in the following two cases:
 
 - The application has a `BUILDPACK_URL` environment variable set via the `dokku config:set` command or in a committed `.env` file. In this case, Dokku will use your specified buildpack.
 - The application has a `.buildpacks` file in the root of the repository. In this case, Dokku will use your specified buildpack(s).
@@ -17,11 +17,52 @@ To use a dockerfiles for deployment, commit a valid `Dockerfile` to the root of 
 
 Dokku will extract all tcp ports exposed using the `EXPOSE` directive (one port per line) and setup nginx to proxy the same port numbers to listen publicly. If you would like to change the exposed port, you should do so within your `Dockerfile` and app.
 
-> NOTE: Nginx does not support proxying UDP. UDP ports can be exposed by disabling the nginx proxy with `dokku proxy:disable myapp`
+> Note: If ports are specified via `EXPOSE` in your `Dockerfile`, we will proxy requests to the first port specified. Your application must be configured to listen on that port.
 
-If you do not explicitly `EXPOSE` a port in your `Dockerfile`, dokku will configure the nginx proxy to listen on port 80 (and 443 for TLS) and forward traffic to your app listening on port 5000 inside the container. Just like buildpack apps, you can also use the `$PORT` environment variable in your app to maintain portability.
+If you do not explicitly `EXPOSE` a port in your `Dockerfile`, Dokku will configure the nginx proxy to listen on port 80 (and 443 for TLS) and forward traffic to your app listening on port 5000 inside the container. Just like buildpack apps, you can also use the `$PORT` environment variable in your app to maintain portability.
 
-When ports are exposed through the default nginx proxy, they are proxied externally as HTTP ports. At this time, in no case do we proxy plain TCP or UDP ports. If you would like to investigate alternative proxy methods, please refer to our [proxy management documentation](/dokku/advanced-usage/proxy-management/).
+When ports are exposed through the default nginx proxy, they are proxied externally as HTTP ports. At this time, in no case do we proxy plain TCP or UDP ports. Nginx does not support proxying UDP. UDP ports can be exposed by disabling the nginx proxy with `dokku proxy:disable myapp`. If you would like to investigate alternative proxy methods, please refer to our [proxy management documentation](/docs/advanced-usage/proxy-management.md).
+
+## Build-time Configuration Variables
+
+For security reasons - and as per [docker recommendations](https://github.com/docker/docker/issues/13490) - Dockerfile-based deploys have variables available only during runtime.
+
+For users that require customization in the `build` phase, you may use build arguments via the [docker-options plugin](docs/advanced-usage/docker-options.md):
+
+```shell
+dokku docker-options:add node-js-app build '--build-arg NODE_ENV=production'
+```
+
+Once set, the Dockerfile usage would be as follows:
+
+```Dockerfile
+FROM debian:jessie
+
+# set the argument default
+ARG NODE_ENV=production
+
+# use the argument
+RUN echo $NODE_ENV
+```
+
+You may also set the argument as an environment variable
+
+```Dockerfile
+FROM debian:jessie
+
+# set the argument default
+ARG NODE_ENV=production
+
+# assign it to an environment variable
+# we can wrap the variable in brackets
+ENV NODE_ENV ${NODE_ENV}
+
+# or omit them completely
+
+# use the argument
+RUN echo $NODE_ENV
+```
+
 
 ## Customizing the run command
 
@@ -34,7 +75,7 @@ ENTRYPOINT ["node"]
 You can do:
 
 ```shell
-dokku config:set APP DOKKU_DOCKERFILE_START_CMD="--harmony server.js"
+dokku config:set node-js-app DOKKU_DOCKERFILE_START_CMD="--harmony server.js"
 ```
 
 To tell docker what to run.

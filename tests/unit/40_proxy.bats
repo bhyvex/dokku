@@ -3,6 +3,7 @@
 load test_helper
 
 setup() {
+  global_setup
   [[ -f "$DOKKU_ROOT/VHOST" ]] && cp -fp "$DOKKU_ROOT/VHOST" "$DOKKU_ROOT/VHOST.bak"
   [[ -f "$DOKKU_ROOT/HOSTNAME" ]] && cp -fp "$DOKKU_ROOT/HOSTNAME" "$DOKKU_ROOT/HOSTNAME.bak"
   create_app
@@ -12,6 +13,7 @@ teardown() {
   destroy_app 0 $TEST_APP
   [[ -f "$DOKKU_ROOT/VHOST.bak" ]] && mv "$DOKKU_ROOT/VHOST.bak" "$DOKKU_ROOT/VHOST" && chown dokku:dokku "$DOKKU_ROOT/VHOST"
   [[ -f "$DOKKU_ROOT/HOSTNAME.bak" ]] && mv "$DOKKU_ROOT/HOSTNAME.bak" "$DOKKU_ROOT/HOSTNAME" && chown dokku:dokku "$DOKKU_ROOT/HOSTNAME"
+  global_teardown
 }
 
 assert_nonssl_domain() {
@@ -22,7 +24,7 @@ assert_nonssl_domain() {
 
 assert_app_domain() {
   local domain=$1
-  run /bin/bash -c "dokku domains $TEST_APP | grep -xF ${domain}"
+  run /bin/bash -c "dokku domains $TEST_APP 2> /dev/null | grep -xF ${domain}"
   echo "output: "$output
   echo "status: "$status
   assert_output "${domain}"
@@ -49,7 +51,7 @@ assert_external_port() {
   assert_success
 
   for CID_FILE in $DOKKU_ROOT/$TEST_APP/CONTAINER.web.*; do
-    assert_external_port $(< $CID_FILE) success
+    assert_external_port $(< $CID_FILE) failure
   done
 
   run dokku proxy:enable $TEST_APP

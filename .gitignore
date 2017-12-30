@@ -1,6 +1,10 @@
-.vagrant
+*.deb
+*.rpm
 .DS_Store
+.ruby-version
+.idea/
+.vagrant
+data/
 stack.tgz
 tmp
-*.deb
-.ruby-version
+coverage.out

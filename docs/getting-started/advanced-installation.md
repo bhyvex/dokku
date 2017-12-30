@@ -1,10 +1,10 @@
 # Advanced installation
 
-You can always install dokku straight from the latest - potentially unstable - master release via the following bash command:
+You can always install Dokku straight from the latest - potentially unstable - master release via the following bash command:
 
 ```shell
 # using a branch results in installing from source
-wget https://raw.githubusercontent.com/dokku/dokku/master/bootstrap.sh
+wget https://raw.githubusercontent.com/dokku/dokku/master/bootstrap.sh;
 sudo DOKKU_BRANCH=master bash bootstrap.sh
 ```
 
@@ -26,10 +26,10 @@ sudo SSHCOMMAND_URL=https://raw.githubusercontent.com/yourusername/sshcommand/ma
 
 ## Bootstrap a server from your own repository
 
-The bootstrap script allows the dokku repository URL to be overridden to bootstrap a host from your own clone of dokku using the `DOKKU_REPO` environment variable. Example:
+The bootstrap script allows the Dokku repository URL to be overridden to bootstrap a host from your own clone of Dokku using the `DOKKU_REPO` environment variable. Example:
 
 ```shell
-wget https://raw.githubusercontent.com/dokku/dokku/master/bootstrap.sh
+wget https://raw.githubusercontent.com/dokku/dokku/master/bootstrap.sh;
 chmod +x bootstrap.sh
 sudo DOKKU_REPO=https://github.com/yourusername/dokku.git DOKKU_BRANCH=master ./bootstrap.sh
 ```
@@ -44,21 +44,25 @@ cd dokku
 sudo BUILD_STACK=true STACK_URL=https://github.com/gliderlabs/herokuish.git make install
 ```
 
+## Skipping herokuish installation
+
+The `herokuish` package is recommended but not required if not using Heroku Buildpacks for deployment. Debian-based OS users can run the bootstrap installer via `sudo DOKKU_NO_INSTALL_RECOMMENDS=true bash bootstrap.sh` to skip the dependency. Please note that this will _also_ skip installation of other recommended dependencies.
+
 ## Configuring
 
-Once dokku is installed, if you are not using the web-installer, you'll want to configure a the virtualhost setup as well as the push user. If you do not, your installation will be considered incomplete and you will not be able to deploy applications.
+Once Dokku is installed, if you are not using the web-installer, you'll want to configure a the virtualhost setup as well as the push user. If you do not, your installation will be considered incomplete and you will not be able to deploy applications.
 
 *You should also stop and disable the `dokku-installer` service to remove public access to adding SSH keys.*
 
-Set up a domain and a wildcard domain pointing to that host. Make sure `/home/dokku/VHOST` is set to this domain. By default it's set to whatever hostname the host has. This file is only created if the hostname can be resolved by dig (`dig +short $(hostname -f)`). Otherwise you have to create the file manually and set it to your preferred domain. If this file still is not present when you push your app, dokku will publish the app with a port number (i.e. `http://example.com:49154` - note the missing subdomain).
+Set up a domain and a wildcard domain pointing to that host. Make sure `/home/dokku/VHOST` is set to this domain. By default it's set to whatever hostname the host has. This file is only created if the hostname can be resolved by dig (`dig +short $(hostname -f)`). Otherwise you have to create the file manually and set it to your preferred domain. If this file still is not present when you push your app, Dokku will publish the app with a port number (i.e. `http://example.com:49154` - note the missing subdomain).
 
-Follow the [user management documentation](/dokku/deployment/user-management/) in order to add users to dokku.
+Follow the [user management documentation](/docs/deployment/user-management.md) in order to add users to Dokku, or to give other Unix accounts access to Dokku.
 
 That's it!
 
 ## VMs with less than 1GB of memory
 
-Having less than 1GB of system memory available for dokku and its containers, for example Digital Ocean's small 512MB machines, might result in unexpected errors, such as **! [remote rejected] master -> master (pre-receive hook declined)** during installation of NPM dependencies (https://github.com/npm/npm/issues/3867).
+Having less than 1GB of system memory available for Dokku and its containers, for example Digital Ocean's small 512MB machines, might result in unexpected errors, such as **! [remote rejected] master -> master (pre-receive hook declined)** during installation of NPM dependencies (https://github.com/npm/npm/issues/3867).
 
 To work around this issue, it might suffice to augment the linux swap file size to a maximum of twice the physical memory size.
 

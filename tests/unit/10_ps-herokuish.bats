@@ -3,12 +3,14 @@
 load test_helper
 
 setup() {
+  global_setup
   create_app
 }
 
 teardown() {
   destroy_app
   destroy_app 0 "$MYAPP" || true
+  global_teardown
 }
 
 @test "(ps) herokuish" {
@@ -135,7 +137,7 @@ teardown() {
   echo "status: "$status
   assert_success
 
-  run bash -c "dokku apps"
+  run bash -c "dokku apps:list"
   echo "output: "$output
   echo "status: "$status
   assert_success

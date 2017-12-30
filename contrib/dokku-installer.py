@@ -3,13 +3,14 @@
 import cgi
 import json
 import os
+import re
 import SimpleHTTPServer
 import SocketServer
 import subprocess
 import sys
 import threading
 
-VERSION = 'v0.7.0'
+VERSION = 'v0.11.2'
 
 hostname = ''
 try:
@@ -100,8 +101,20 @@ class GetHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         with open('{0}/HOSTNAME'.format(dokku_root), 'w') as f:
             f.write(params['hostname'].value)
 
-        command = ['sshcommand', 'acl-add', 'dokku', 'admin']
-        for key in params['keys'].value.split("\n"):
+        for (index, key) in enumerate(params['keys'].value.splitlines(), 1):
+            user = 'admin'
+            if self.admin_user_exists() is not None:
+                user = 'web-admin'
+                if self.web_admin_user_exists() is not None:
+                    index = int(self.web_admin_user_exists()) + 1
+                elif self.web_admin_user_exists() is None:
+                    index = 1
+            elif self.admin_user_exists() is None:
+                pass
+            else:
+                index = int(self.admin_user_exists()) + 1
+            user = user + str(index)
+            command = ['sshcommand', 'acl-add', 'dokku', user]
             proc = subprocess.Popen(command, stdin=subprocess.PIPE)
             proc.stdin.write(key)
             proc.stdin.close()
@@ -118,6 +131,29 @@ class GetHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
         self.wfile.write(json.dumps({'status': 'ok'}))
+
+    def web_admin_user_exists(self):
+        return self.user_exists('web-admin(\d+)')
+
+    def admin_user_exists(self):
+        return self.user_exists('admin(\d+)')
+
+    def user_exists(self, name):
+        command = 'dokku ssh-keys:list'
+        pattern = re.compile(r'NAME="' + name + '"')
+        proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+        max_num = 0
+        exists = False
+        for line in proc.stdout:
+            m = pattern.search(line)
+            if m:
+                # User of the form `user` or `user#` exists
+                exists = True
+                max_num = max(max_num, m.group(1))
+        if exists:
+            return max_num
+        else:
+            return None
 
 
 def set_debconf_selection(debconf_type, key, value):
@@ -155,7 +191,7 @@ class DeleteInstallerThread(object):
         except:
             pass
 
-        command = "rm -f /etc/init/dokku-installer.conf /etc/systemd/system/dokku-installer.service && stop dokku-installer"
+        command = "rm -f /etc/init/dokku-installer.conf /etc/systemd/system/dokku-installer.service && (stop dokku-installer || systemctl stop dokku-installer.service)"
         try:
             subprocess.call(command, shell=True)
         except:
@@ -218,7 +254,7 @@ PAGE = """
       $.post('/setup', data)
         .done(function() {
           $("#result").html("Success!")
-          window.location.href = "http://progrium.viewdocs.io/dokku/deployment/application-deployment/";
+          window.location.href = "http://dokku.viewdocs.io/dokku~{VERSION}/deployment/application-deployment/";
         })
         .fail(function(data) {
           $("#result").html("Something went wrong...")
